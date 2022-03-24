@@ -1,0 +1,161 @@
+
+
+from ast import Index
+import pandas as pd
+import os 
+import time 
+import scipy.stats as stats
+import numpy as np
+#for visualization
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib import figure
+import plotly
+import plotly.express as px
+
+
+
+
+
+#Import file 
+Spotify = pd.read_csv('spotify_dataset.csv')
+Spotify.head()
+
+
+
+
+
+Spotify.info()
+
+
+
+
+
+#lets check for missing data
+Spotify.isnull().sum()
+
+
+
+
+
+#lets group by artis
+
+byartist = Spotify.groupby('Artist').sum().sort_values('Number of Times Charted', ascending=False)
+byartist = byartist.reset_index()
+byartist
+
+
+px.bar(x='Artist', y='Number of Times Charted', data_frame=byartist.head(10),title='Top 10 Artist')
+
+#get columns
+Spotify.columns
+
+#Lets clean the data
+df = Spotify
+df = df.fillna('')
+df = df.replace(' ','')
+#lets do a one off for the Streams
+df['Streams'] = df['Streams'].str.replace(',','')
+
+df.dtypes
+df
+
+#Lets convert all the numeric columns to numeric
+
+df[['Highest Charting Position', 'Number of Times Charted',
+        'Streams',
+       'Artist Followers',
+       'Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness',
+       'Acousticness', 'Liveness', 'Tempo', 'Duration (ms)', 'Valence']] = df[[ 'Highest Charting Position', 'Number of Times Charted',
+        'Streams',
+       'Artist Followers', 
+       'Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness',
+       'Acousticness', 'Liveness', 'Tempo', 'Duration (ms)', 'Valence']].apply(pd.to_numeric)
+       
+#check data types
+df.dtypes
+
+#Letsa separate the year for Release year column
+
+df['Release Date'] = pd.DatetimeIndex(df['Release Date']).year
+df.to_excel('Spotify.xlsx',index=False)
+
+#Lets plot the heat map
+
+%matplotlib inline
+f,ax = plt.subplots(figsize=(14,10))
+sns.heatmap(df.corr(),annot = True,fmt = ".1f",ax = ax)
+plt.show()
+
+
+#Now lets do a graph for danceability by artist
+df.head()
+px.bar(x='Artist', y='Danceability', data_frame=df.head(20),title='Top 20 best Artist to dance')
+
+
+
+
+#Lets rename the column
+df_N = df.rename(columns ={'Release Date': 'Release_Year'})
+df_N.to_excel('Spotify_convert.xlsx',index=False)
+
+df_N.columns
+
+#Number of Times Charted' correlates with years
+
+
+
+df_year = df_N.groupby('Release_Year').sum().sort_values('Number of Times Charted', ascending=False)
+df_year = df_year.reset_index()
+df_year.columns
+
+
+#Lets change data type 
+df_year[['Release_Year']] = df_year[['Release_Year']].apply(pd.to_numeric)
+df_year.head(10)
+
+
+#Lets see a graph
+px.bar(x='Release_Year', y='Number of Times Charted', data_frame=df_year.head(10),title='Best years')
+
+
+#Lets see who is the most popular
+df.columns
+df_popular = df.groupby('Artist').sum().sort_values('Popularity', ascending=False)
+df_popular = df_popular.reset_index()
+df_popular
+
+
+#Lets see a graph
+px.bar(x='Artist', y='Popularity', data_frame=df_popular.head(10),title='Most Popular artist')
+
+
+df.head(10)
+df.columns
+
+
+#Lets get the most popular genders
+df['Genre'] = df['Genre'].astype(str)
+df['Genre'][df['Genre'] =="[]"] = np.nan
+
+##Filter to One Column -->Genre
+df.filter(items=['Genre'])
+
+
+
+#Lets get rid of some characteres 
+df.Genre = df.Genre.str.replace("[","")
+df.Genre = df.Genre.str.replace("]","")
+
+spec_chars = ["[","]","'"]
+for char in spec_chars:
+    df['Genre'] =   df['Genre'].str.replace(char,'')
+
+#Music_Gender = df.head(15)
+
+fig = plt.figure(figsize=(10,10))
+ax = fig.subplots()
+df.Genre.value_counts()[:10].plot(ax=ax, kind ='pie')
+ax.set_title("Top 10 popular Genders")
+fig.patch.set_facecolor('white')
+plt.show
